@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 var (
@@ -55,10 +56,36 @@ func main() {
 				return
 			}
 
-			holidays, err := dates.GetHolidaysBetween(startYear, endYear)
+			delimiter := ','
+			if del := context.Query("delimiter"); del == ";" {
+				delimiter = ';'
+			}
+
+			h, err := dates.GetHolidaysBetween(startYear, endYear)
+
 			if err != nil {
 				context.AbortWithStatus(http.StatusInternalServerError)
 				return
+			}
+
+			var holidays []*dates.CountryDateItem
+			if context.Query("include_weekends") == "false" {
+				logger.SLog.Debugw("excluding weekends")
+				for _, i := range h {
+					t, err := time.Parse("2006-01-02", i.Date)
+					if err != nil {
+						context.AbortWithStatus(http.StatusInternalServerError)
+						return
+					}
+
+					if t.Weekday() == time.Saturday || t.Weekday() == time.Sunday {
+						continue
+					}
+
+					holidays = append(holidays, i)
+				}
+			} else {
+				holidays = h
 			}
 
 			switch format {
@@ -66,7 +93,7 @@ func main() {
 				context.JSON(http.StatusOK, holidays)
 			case "csv":
 				context.Header("Content-Type", "text/csv")
-				if err := writeCsvOutput(holidays, context.Writer); err != nil {
+				if err := writeCsvOutput(holidays, delimiter, context.Writer); err != nil {
 					context.AbortWithStatus(http.StatusInternalServerError)
 					return
 				}
@@ -87,12 +114,12 @@ func main() {
 		panic(err)
 	}
 
-	if err := writeCsvOutput(holidays, os.Stdout); err != nil {
+	if err := writeCsvOutput(holidays, ',', os.Stdout); err != nil {
 		panic(err)
 	}
 }
 
-func writeCsvOutput(holidays []*dates.CountryDateItem, out io.Writer) error {
+func writeCsvOutput(holidays []*dates.CountryDateItem, delimiter rune, out io.Writer) error {
 	records := [][]string{
 		{"date", "name", "country_code", "country_name"},
 	}
@@ -104,6 +131,7 @@ func writeCsvOutput(holidays []*dates.CountryDateItem, out io.Writer) error {
 	}
 
 	w := csv.NewWriter(out)
+	w.Comma = delimiter
 
 	return w.WriteAll(records)
 }

@@ -55,13 +55,16 @@ func GetHolidaysBetween(startYear, endYear int) ([]*CountryDateItem, error) {
 		eg, _ := errgroup.WithContext(context.Background())
 		dates := make(chan []*CountryDateItem, len(countries))
 		for _, country := range countries {
+			c := country
 			eg.Go(func() error {
-				r, err := http.Get(requestUrl(fmt.Sprintf("publicholidays/%d/%s", currentYear, country.CountryCode)))
+				r, err := http.Get(requestUrl(fmt.Sprintf("publicholidays/%d/%s", currentYear, c.CountryCode)))
 
 				if err != nil {
-					logger.SLog.Errorw("failed to retrieve holidays", "country", country.CountryCode, "error", err)
+					logger.SLog.Errorw("failed to retrieve holidays", "country", c.CountryCode, "error", err)
 					return err
 				}
+
+				logger.SLog.Debugw("retrieved holidays for country", "year", currentYear, "country", c.CountryCode)
 
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -76,7 +79,7 @@ func GetHolidaysBetween(startYear, endYear int) ([]*CountryDateItem, error) {
 				}
 
 				for _, o := range out {
-					o.CountryName = country.Name
+					o.CountryName = c.Name
 				}
 
 				dates <- out
