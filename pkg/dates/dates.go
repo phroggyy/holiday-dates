@@ -19,16 +19,14 @@ type CountryListItem struct {
 }
 
 type CountryDateItem struct {
-	Date        string `json:"date"`
-	LocalName   string `json:"localName"`
-	Name        string `json:"name"`
-	CountryCode string `json:"countryCode"`
-	CountryName string `json:"countryName,omitempty"`
-	Fixed       bool   `json:"fixed"`
-	Global      bool   `json:"global"`
-	//LaunchYear  string   `json:"launchYear,omitempty"`
-	//Counties    []string `json:"counties"`
-	//Types       []string `json:"types"`
+	Date        string   `json:"date"`
+	LocalName   string   `json:"localName"`
+	Name        string   `json:"name"`
+	CountryCode string   `json:"countryCode"`
+	CountryName string   `json:"countryName,omitempty"`
+	Fixed       bool     `json:"fixed"`
+	Global      bool     `json:"global"`
+	Counties    []string `json:"counties"`
 }
 
 func GetHolidaysBetween(startYear, endYear int) ([]*CountryDateItem, error) {
@@ -94,7 +92,11 @@ func GetHolidaysBetween(startYear, endYear int) ([]*CountryDateItem, error) {
 		}
 		close(dates)
 		for d := range dates {
-			output = append(output, d...)
+			for _, date := range d {
+				if len(date.Counties) == 0 {
+					output = append(output, date)
+				}
+			}
 		}
 		logger.SLog.Debugw("retrieved all holidays for year", "year", currentYear)
 
