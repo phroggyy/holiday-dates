@@ -13,6 +13,12 @@ import (
 
 const APIBaseUrl = "https://date.nager.at/api/v3/"
 
+// A map from country to county/region
+var authoritativeCounties = map[string]string{
+	"GB": "GB-ENG",
+	"US": "US-NY",
+}
+
 type CountryListItem struct {
 	CountryCode string `json:"countryCode"`
 	Name        string `json:"name"`
@@ -93,7 +99,7 @@ func GetHolidaysBetween(startYear, endYear int) ([]*CountryDateItem, error) {
 		close(dates)
 		for d := range dates {
 			for _, date := range d {
-				if len(date.Counties) == 0 {
+				if len(date.Counties) == 0 || isAuthoritativeCounty(date) {
 					output = append(output, date)
 				}
 			}
@@ -109,4 +115,14 @@ func GetHolidaysBetween(startYear, endYear int) ([]*CountryDateItem, error) {
 func requestUrl(p string) string {
 	r, _ := url.JoinPath(APIBaseUrl, p)
 	return r
+}
+
+func isAuthoritativeCounty(d *CountryDateItem) bool {
+	for _, county := range d.Counties {
+		if authoritativeCounties[d.CountryCode] == county {
+			return true
+		}
+	}
+
+	return false
 }
