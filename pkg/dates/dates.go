@@ -17,6 +17,7 @@ const APIBaseUrl = "https://date.nager.at/api/v3/"
 var authoritativeCounties = map[string]string{
 	"GB": "GB-ENG",
 	"US": "US-NY",
+	"CA": "CA-ON",
 }
 
 type CountryListItem struct {
