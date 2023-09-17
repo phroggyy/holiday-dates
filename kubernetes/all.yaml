@@ -1,0 +1,58 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: holiday-dates
+  labels:
+    app: holiday-dates
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: holiday-dates
+  template:
+    metadata:
+      labels:
+        app: holiday-dates
+    spec:
+      containers:
+        - name: app
+          image: phroggyy/holiday-dates:latest
+          command: ['/app/app']
+          args: ['serve']
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: holiday-dates
+spec:
+  selector:
+    app: holiday-dates
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: holiday-dates
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - utilities.leosjoberg.com
+      secretName: utilities.leosjoberg.com-tls
+  rules:
+    - host: utilities.leosjoberg.com
+      http:
+        paths:
+          - path: /bank-holidays(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: holiday-dates
+                port:
+                  number: 80
